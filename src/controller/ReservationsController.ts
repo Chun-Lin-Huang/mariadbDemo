@@ -14,9 +14,20 @@ export class ReservationsController extends Contorller {
         this.service = new PageService();
     }
 
-    public async test(Request: Request, Response: Response) {
-        await DB.connection?.query("USE lab_b310;");
-        const resp = await DB.connection?.query("SELECT * FROM Reservations;");
-        Response.send(resp)
+    public async test(req: Request, res: Response) {
+        try {
+            if (!DB.connection) {
+                logger.error("Database connection not available.");
+                return res.status(500).json({ error: "Database connection not established" });
+            }
+
+            const resp = await DB.connection.query("SELECT * FROM lab_b310.Reservations;");
+
+            logger.info("Query executed successfully.");
+            res.json(resp);
+        } catch (error) {
+            logger.error(`Database query error: ${error}`);
+            res.status(500).json({ error: "Internal server error" });
+        }
     }
 }
