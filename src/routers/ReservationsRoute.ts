@@ -17,11 +17,6 @@ export class ReservationsRoute extends Route {
             this.Contorller.test(req, res);
         });
 
-        // 多日預約查詢
-        this.router.get(`${this.url}multi-day`, (req, res) => {
-            this.Contorller.multiDay(req, res);
-        });
-
         // 新增多日預約
         this.router.post(`${this.url}multiday-booking`, (req, res) => {
             this.Contorller.addMultiDayReservation(req, res);

@@ -31,53 +31,50 @@ export class ReservationsController extends Contorller {
         }
     }
 
-    public async multiDay(req: Request, res: Response) {
-        try {
-            if (!DB.connection) {
-                logger.error("Database connection not available.");
-                return res.status(500).json({ error: "Database connection not established" });
-            }
-
-            // 查詢 reservation_date 非空的資料（多日預約）
-            const result = await DB.connection.query(`
-            SELECT * FROM lab_b310.Reservations
-            WHERE reservation_date IS NOT NULL
-            ORDER BY reservation_date DESC, create_time DESC;
-          `);
-
-            logger.info("Multi-day reservations fetched successfully.");
-            res.json(result);
-        } catch (error) {
-            logger.error(`Multi-day reservation query error: ${error}`);
-            res.status(500).json({ error: "Internal server error" });
-        }
-    }
-
     public async addMultiDayReservation(req: Request, res: Response) {
         try {
             if (!DB.connection) {
-                logger.error("Database connection not available.");
-                return res.status(500).json({ error: "Database connection not established" });
+                logger.error("DB not connected");
+                return res.status(500).json({ error: "DB not connected" });
             }
 
             const { student_id, seat_id, timeslot_id, reservation_date } = req.body;
+            console.log("Received:", req.body);
 
-            // 檢查欄位
             if (!student_id || !seat_id || !timeslot_id || !reservation_date) {
-                return res.status(400).json({ error: "Missing required fields" });
+                return res.status(400).json({ error: "Missing fields" });
             }
 
-            const sql = `
-            INSERT INTO lab_b310.Reservations (student_id, seat_id, timeslot_id, reservation_date, create_time)
-            VALUES (?, ?, ?, ?, NOW())
-          `;
+            // 查詢是否重複
+            const [rows] = await DB.connection.query(
+                `SELECT 1 FROM lab_b310.Reservations
+             WHERE seat_id = ? AND timeslot_id = ? AND reservation_date = ?`,
+                [seat_id, timeslot_id, reservation_date]
+            );
 
-            await DB.connection.execute(sql, [student_id, seat_id, timeslot_id, reservation_date]);
+            // 一定要確認 rows 是陣列再用 .length
+            if (Array.isArray(rows) && rows.length > 0) {
+                return res.status(409).json({ error: "Reservation already exists" });
+            }
 
-            logger.info("New multi-day reservation created.");
-            res.status(201).json({ message: "Reservation added successfully" });
-        } catch (error) {
-            logger.error(`Insert multi-day reservation failed: ${error}`);
+            // 若沒重複才插入
+            await DB.connection.execute(
+                `INSERT INTO lab_b310.Reservations
+              (student_id, seat_id, timeslot_id, reservation_date, create_time)
+             VALUES (?, ?, ?, ?, NOW())`,
+                [student_id, seat_id, timeslot_id, reservation_date]
+            );
+
+            logger.info("Reservation inserted");
+            res.status(201).json({ message: "Reservation added" });
+
+        } catch (error: any) {
+            if (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) {
+                logger.warn("MySQL Duplicate Entry 被攔截");
+                return res.status(409).json({ error: "Reservation already exists (duplicate)" });
+            }
+
+            logger.error("INSERT ERROR:", error);
             res.status(500).json({ error: "Internal server error" });
         }
     }
