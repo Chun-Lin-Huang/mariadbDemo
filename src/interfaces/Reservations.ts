@@ -4,4 +4,5 @@ export interface Reservation {
     seat_id: number;        // 座位編號（外鍵，對應 Seats.seat_id）
     timeslot_id: number;    // 時段編號（外鍵，對應 Timeslots.timeslot_id）
     create_time?: string;   // 創建時間（DATETIME），預設為 CURRENT_TIMESTAMP，選用可選屬性
+    reservation_date?: string;
 }
