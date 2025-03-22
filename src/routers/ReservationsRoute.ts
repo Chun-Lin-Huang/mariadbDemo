@@ -1,21 +1,30 @@
 import { Route } from "../abstract/Route"
 import { ReservationsController } from "../controller/ReservationsController";
 
-export class ReservationsRoute extends Route{
-    
+export class ReservationsRoute extends Route {
+
     protected url: string;
     protected Contorller = new ReservationsController();
 
-    constructor(){
+    constructor() {
         super()
         this.url = '/Reservations/'
         this.setRoutes()
     }
 
     protected setRoutes(): void {
-        this.router.get(`${this.url}test`,(req, res)=>{
+        this.router.get(`${this.url}test`, (req, res) => {
             this.Contorller.test(req, res);
-        })
-    }
+        });
 
+        // 多日預約查詢
+        this.router.get(`${this.url}multi-day`, (req, res) => {
+            this.Contorller.multiDay(req, res);
+        });
+
+        // 新增多日預約
+        this.router.post(`${this.url}multiday-booking`, (req, res) => {
+            this.Contorller.addMultiDayReservation(req, res);
+          });          
+    }
 }
